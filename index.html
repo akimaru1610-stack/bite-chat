@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>極軽Jiffcy</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
+        #myId { color: #888; font-size: 0.8rem; }
+        .box { border: 1px solid #333; padding: 10px; margin-top: 10px; min-height: 50px; word-break: break-all; }
+        input { width: 100%; background: #111; color: #fff; border: 1px solid #555; padding: 10px; box-sizing: border-box; }
+        .status { font-size: 0.7rem; color: #f0f; }
+    </style>
+</head>
+<body>
+    <h2>リアルタイムチャット</h2>
+    <div id="myId">あなたのID: 読み込み中...</div>
+
+    <div style="margin-top:20px;">
+        <input id="peerIdInput" placeholder="相手のIDを入力して接続">
+        <button onclick="connect()">接続</button>
+    </div>
+
+    <p class="status" id="status">待機中...</p>
+
+    <div>
+        <p>相手の入力:</p>
+        <div id="remoteText" class="box"></div>
+    </div>
+
+    <div style="margin-top:20px;">
+        <p>あなたの入力:</p>
+        <input id="localInput" placeholder="ここに打つと即同期" disabled>
+    </div>
+
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script>
+        const peer = new Peer(); // ランダムなIDを生成
+        let conn;
+
+        // 自分のIDを表示
+        peer.on('open', (id) => {
+            document.getElementById('myId').innerText = "あなたのID: " + id;
+        });
+
+        // 接続ボタンを押した時
+        function connect() {
+            const remoteId = document.getElementById('peerIdInput').value;
+            setupConn(peer.connect(remoteId));
+        }
+
+        // 相手から接続された時
+        peer.on('connection', (c) => {
+            setupConn(c);
+        });
+
+        function setupConn(c) {
+            conn = c;
+            conn.on('open', () => {
+                document.getElementById('status').innerText = "接続完了！同期中...";
+                document.getElementById('localInput').disabled = false;
+            });
+
+            // リアルタイムにデータを受信
+            conn.on('data', (data) => {
+                document.getElementById('remoteText').innerText = data;
+            });
+        }
+
+        // 入力のたびに相手に送信 (Jiffcyコア機能)
+        document.getElementById('localInput').addEventListener('input', (e) => {
+            if (conn && conn.open) {
+                conn.send(e.target.value);
+            }
+        });
+    </script>
+</body>
+</html>
